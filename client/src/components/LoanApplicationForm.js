@@ -1,150 +1,158 @@
 import React, { useState } from 'react';
-import { Form, Button, Alert, Container, Row, Col } from 'react-bootstrap';
-import { API } from 'aws-amplify';
+import { TextField, Button, Grid, MenuItem, CircularProgress } from '@mui/material';
 
-const LoanApplicationForm = () => {
+const LoanApplicationForm = ({ onSubmit }) => {
   const [formData, setFormData] = useState({
-    loanType: '',
-    requestedAmount: '',
-    creditScore: '',
-    annualIncome: '',
-    employmentStatus: '',
-    homeOwnership: '',
-    monthlyDebt: '',
-    purpose: '',
-    loanTerm: ''
+    loan_amount: '',
+    employment_length: '',
+    employment_status: '',
+    annual_income: '',
+    debt_to_income_ratio: '',
+    credit_score: '',
   });
-
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [loanDecision, setLoanDecision] = useState(null);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    setErrors({ ...errors, [name]: '' });
-  };
+  const [loading, setLoading] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.loanType) newErrors.loanType = 'Loan type is required';
-    if (!formData.requestedAmount || isNaN(formData.requestedAmount) || formData.requestedAmount <= 0) {
-      newErrors.requestedAmount = 'Please enter a valid amount';
+    if (!formData.loan_amount || formData.loan_amount <= 0) {
+      newErrors.loan_amount = 'Loan amount must be greater than 0';
     }
-    if (!formData.creditScore || isNaN(formData.creditScore) || formData.creditScore < 300 || formData.creditScore > 850) {
-      newErrors.creditScore = 'Please enter a valid credit score (300-850)';
+    if (!formData.employment_length || formData.employment_length < 0) {
+      newErrors.employment_length = 'Employment length must be 0 or greater';
     }
-    if (!formData.annualIncome || isNaN(formData.annualIncome) || formData.annualIncome <= 0) {
-      newErrors.annualIncome = 'Please enter a valid annual income';
+    if (!formData.employment_status) {
+      newErrors.employment_status = 'Employment status is required';
     }
-    if (!formData.employmentStatus) newErrors.employmentStatus = 'Employment status is required';
-    if (!formData.homeOwnership) newErrors.homeOwnership = 'Home ownership status is required';
-    if (!formData.monthlyDebt || isNaN(formData.monthlyDebt) || formData.monthlyDebt < 0) {
-      newErrors.monthlyDebt = 'Please enter a valid monthly debt amount';
+    if (!formData.annual_income || formData.annual_income <= 0) {
+      newErrors.annual_income = 'Annual income must be greater than 0';
     }
-    if (!formData.purpose) newErrors.purpose = 'Loan purpose is required';
-    if (!formData.loanTerm) newErrors.loanTerm = 'Loan term is required';
-
+    if (!formData.debt_to_income_ratio || formData.debt_to_income_ratio < 0 || formData.debt_to_income_ratio > 100) {
+      newErrors.debt_to_income_ratio = 'Debt to income ratio must be between 0 and 100';
+    }
+    if (!formData.credit_score || formData.credit_score < 300 || formData.credit_score > 850) {
+      newErrors.credit_score = 'Credit score must be between 300 and 850';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error when user starts typing
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: null });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      setIsSubmitting(true);
-      setSubmitError(null);
-      try {
-        const response = await API.post('loanAPI', '/application', { body: formData });
-        console.log('Application submitted:', response);
-        setSubmitSuccess(true);
-        setLoanDecision(response);
-      } catch (error) {
-        console.error('Error submitting application:', error);
-        setSubmitError('An error occurred while submitting your application. Please try again.');
-      } finally {
-        setIsSubmitting(false);
-      }
+      setLoading(true);
+      await onSubmit(formData);
+      setLoading(false);
     }
   };
 
-  if (submitSuccess && loanDecision) {
-    return (
-      <Container>
-        <Alert variant={loanDecision.approval_status ? "success" : "warning"}>
-          <h4>{loanDecision.approval_status ? "Congratulations! Your loan has been approved." : "We're sorry, your loan application was not approved at this time."}</h4>
-          <p>{loanDecision.llm_response.explanation}</p>
-          {loanDecision.approval_status ? (
-            <>
-              <p>Approved Amount: ${loanDecision.llm_response.approved_amount}</p>
-              <p>Interest Rate: {loanDecision.llm_response.interest_rate}%</p>
-              <p>Loan Term: {loanDecision.llm_response.loan_term} months</p>
-              <p>Monthly Payment: ${loanDecision.llm_response.monthly_payment}</p>
-            </>
-          ) : (
-            <>
-              <h5>Suggestions for Improvement:</h5>
-              <ul>
-                {loanDecision.llm_response.improvement_suggestions.map((suggestion, index) => (
-                  <li key={index}>{suggestion}</li>
-                ))}
-              </ul>
-            </>
-          )}
-        </Alert>
-      </Container>
-    );
-  }
-
   return (
-    <Container>
-      <Form onSubmit={handleSubmit}>
-        <Row>
-          <Col md={6}>
-            <Form.Group>
-              <Form.Label>Loan Type</Form.Label>
-              <Form.Control
-                as="select"
-                name="loanType"
-                value={formData.loanType}
-                onChange={handleChange}
-                isInvalid={!!errors.loanType}
-              >
-                <option value="">Select loan type</option>
-                <option value="personal">Personal Loan</option>
-                <option value="auto">Auto Loan</option>
-                <option value="mortgage">Mortgage</option>
-                <option value="business">Business Loan</option>
-              </Form.Control>
-              <Form.Control.Feedback type="invalid">{errors.loanType}</Form.Control.Feedback>
-            </Form.Group>
-          </Col>
-          <Col md={6}>
-            <Form.Group>
-              <Form.Label>Requested Amount ($)</Form.Label>
-              <Form.Control
-                type="number"
-                name="requestedAmount"
-                value={formData.requestedAmount}
-                onChange={handleChange}
-                isInvalid={!!errors.requestedAmount}
-              />
-              <Form.Control.Feedback type="invalid">{errors.requestedAmount}</Form.Control.Feedback>
-            </Form.Group>
-          </Col>
-        </Row>
-
-        {/* Add similar Row and Col structures for other form fields */}
-
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Submitting...' : 'Submit Application'}
-        </Button>
-
-        {submitError && <Alert variant="danger" className="mt-3">{submitError}</Alert>}
-      </Form>
-    </Container>
+    <form onSubmit={handleSubmit}>
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            name="loan_amount"
+            label="Loan Amount"
+            type="number"
+            value={formData.loan_amount}
+            onChange={handleChange}
+            required
+            error={!!errors.loan_amount}
+            helperText={errors.loan_amount}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            name="employment_length"
+            label="Employment Length (years)"
+            type="number"
+            value={formData.employment_length}
+            onChange={handleChange}
+            required
+            error={!!errors.employment_length}
+            helperText={errors.employment_length}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            name="employment_status"
+            label="Employment Status"
+            select
+            value={formData.employment_status}
+            onChange={handleChange}
+            required
+            error={!!errors.employment_status}
+            helperText={errors.employment_status}
+          >
+            <MenuItem value="full-time">Full-time</MenuItem>
+            <MenuItem value="part-time">Part-time</MenuItem>
+            <MenuItem value="self-employed">Self-employed</MenuItem>
+            <MenuItem value="unemployed">Unemployed</MenuItem>
+          </TextField>
+        </Grid>
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            name="annual_income"
+            label="Annual Income"
+            type="number"
+            value={formData.annual_income}
+            onChange={handleChange}
+            required
+            error={!!errors.annual_income}
+            helperText={errors.annual_income}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            name="debt_to_income_ratio"
+            label="Debt to Income Ratio"
+            type="number"
+            value={formData.debt_to_income_ratio}
+            onChange={handleChange}
+            required
+            error={!!errors.debt_to_income_ratio}
+            helperText={errors.debt_to_income_ratio}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            name="credit_score"
+            label="Credit Score"
+            type="number"
+            value={formData.credit_score}
+            onChange={handleChange}
+            required
+            error={!!errors.credit_score}
+            helperText={errors.credit_score}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} /> : 'Submit Application'}
+          </Button>
+        </Grid>
+      </Grid>
+    </form>
   );
 };
 

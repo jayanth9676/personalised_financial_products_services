@@ -1,0 +1,90 @@
+body {
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h1, h2, h3, h4 {
+  color: #2c3e50;
+}
+
+.error {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.loan-application {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.loan-option {
+  background-color: #fff;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.loan-option:hover {
+  background-color: #f0f0f0;
+}
+
+.selected-loan {
+  background-color: #e8f0fe;
+  padding: 20px;
+  border-radius: 5px;
+  margin-top: 20px;
+}
+
+button {
+  background-color: #3498db;
+  color: #fff;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #2980b9;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"] {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+}
+
+nav ul {
+  list-style-type: none;
+  padding: 0;
+  display: flex;
+  justify-content: space-between;
+  background-color: #34495e;
+  padding: 10px;
+}
+
+nav ul li a {
+  color: #fff;
+  text-decoration: none;
+}
+
+nav ul li button {
+  background-color: #e74c3c;
+}
+
+nav ul li button:hover {
+  background-color: #c0392b;
+}

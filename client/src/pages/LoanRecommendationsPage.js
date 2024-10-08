@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { Container, Typography, Grid, Card, CardContent, Button, CircularProgress } from '@mui/material';
 import { Link } from 'react-router-dom';
 // import { API } from 'aws-amplify';
 import { useSnackbar } from 'notistack';
+import { ABTestContext } from '../components/ABTestProvider';
 
 function LoanRecommendationsPage() {
+  const variant = useContext(ABTestContext);
+
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const { enqueueSnackbar } = useSnackbar();

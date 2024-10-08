@@ -1,114 +1,59 @@
-import React, { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Typography, TextField, Button, Box, Card } from '@mui/material';
-import { styled } from '@mui/system';
-// import { API } from 'aws-amplify';
-import { Formik, Form, Field } from 'formik';
-import * as Yup from 'yup';
-import { useSnackbar } from 'notistack';
+import React, { useState } from 'react';
+import { API } from 'aws-amplify';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 
-const StyledCard = styled(Card)`
-  padding: 24px;
-  margin-top: 24px;
-`;
-
-const validationSchema = Yup.object().shape({
-  loanAmount: Yup.number()
-    .min(1000, 'Loan amount must be at least $1,000')
-    .max(1000000, 'Loan amount cannot exceed $1,000,000')
-    .required('Loan amount is required'),
+const schema = yup.object().shape({
+  loanAmount: yup.number().positive().required('Loan amount is required'),
+  loanPurpose: yup.string().required('Loan purpose is required'),
+  annualIncome: yup.number().positive().required('Annual income is required'),
+  employmentStatus: yup.string().required('Employment status is required'),
+  creditScore: yup.number().positive().integer().required('Credit score is required'),
 });
 
-function LoanApplicationPage() {
-  const { loanType } = useParams();
-  const navigate = useNavigate();
-  const { enqueueSnackbar } = useSnackbar();
+const LoanApplicationPage = () => {
+  const [step, setStep] = useState(1);
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: yupResolver(schema),
+  });
 
-  const initialValues = {
-    loanType: loanType,
-    loanAmount: '',
-    // Add more fields as needed
-  };
-
-  useEffect(() => {
-    // Commented out fetchUserData as it requires AWS
-    // fetchUserData();
-  }, []);
-
-  // const fetchUserData = async () => {
-  //   try {
-  //     const userData = await API.get('loanAPI', '/user');
-  //     // Update initialValues with user data if needed
-  //   } catch (error) {
-  //     console.error('Error fetching user data:', error);
-  //     enqueueSnackbar('Failed to fetch user data', { variant: 'error' });
-  //   }
-  // };
-
-  const handleSubmit = async (values, { setSubmitting }) => {
+  const onSubmit = async (data) => {
     try {
-      // Simulating API call
-      console.log('Application submitted:', values);
-      enqueueSnackbar('Loan application submitted successfully', { variant: 'success' });
-      navigate('/offer', { state: { offer: {
-        loanAmount: values.loanAmount,
-        interestRate: 5.5,
-        loanTerm: 5,
-        monthlyPayment: (values.loanAmount * 0.055) / 12,
-        minAmount: 1000,
-        maxAmount: 100000,
-        minTerm: 1,
-        maxTerm: 10
-      } } });
+      const response = await API.post('loanAPI', '/apply', { body: data });
+      // Handle successful submission (e.g., redirect to status page)
     } catch (error) {
-      console.error('Error submitting application:', error);
-      enqueueSnackbar('Failed to submit loan application', { variant: 'error' });
-    } finally {
-      setSubmitting(false);
+      console.error('Error submitting loan application:', error);
+      // Handle error (e.g., show error message to user)
     }
   };
 
   return (
-    <Container maxWidth="md">
-      <Typography variant="h3" gutterBottom align="center" sx={{ mt: 4 }}>
-        Apply for {loanType} Loan
-      </Typography>
-      <StyledCard>
-        <Formik
-          initialValues={initialValues}
-          validationSchema={validationSchema}
-          onSubmit={handleSubmit}
-        >
-          {({ errors, touched, isSubmitting }) => (
-            <Form>
-              <Field
-                as={TextField}
-                fullWidth
-                label="Loan Amount"
-                name="loanAmount"
-                type="number"
-                error={touched.loanAmount && errors.loanAmount}
-                helperText={touched.loanAmount && errors.loanAmount}
-                margin="normal"
-                required
-              />
-              <Box sx={{ mt: 3, textAlign: 'center' }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  type="submit"
-                  size="large"
-                  disabled={isSubmitting}
-                >
-                  Get Personalized Offer
-                </Button>
-              </Box>
-            </Form>
-          )}
-        </Formik>
-      </StyledCard>
-    </Container>
+    <form onSubmit={handleSubmit(onSubmit)}>
+      {step === 1 && (
+        <>
+          <input {...register('loanAmount')} placeholder="Loan Amount" />
+          <input {...register('loanPurpose')} placeholder="Loan Purpose" />
+          <button type="button" onClick={() => setStep(2)}>Next</button>
+        </>
+      )}
+      {step === 2 && (
+        <>
+          <input {...register('annualIncome')} placeholder="Annual Income" />
+          <input {...register('employmentStatus')} placeholder="Employment Status" />
+          <input {...register('creditScore')} placeholder="Credit Score" />
+          <button type="submit">Submit Application</button>
+        </>
+      )}
+      {errors && (
+        <div className="errors">
+          {Object.values(errors).map((error, index) => (
+            <p key={index}>{error.message}</p>
+          ))}
+        </div>
+      )}
+    </form>
   );
-}
+};
 
 export default LoanApplicationPage;

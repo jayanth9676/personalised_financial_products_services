@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Loan Application System Backend
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: python3.8
+
+Resources:
+  GetUserDataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend_services/lambda_functions/
+      Handler: get_user_data.lambda_handler
+      Environment:
+        Variables:
+          USERS_TABLE_NAME: !Ref UsersTable
+
+  AdjustLoanParametersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend_services/lambda_functions/
+      Handler: adjust_loan_parameters.lambda_handler
+      Environment:
+        Variables:
+          MODEL_ENDPOINT: !Ref SageMakerEndpoint
+
+  AcceptOfferFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend_services/lambda_functions/
+      Handler: accept_offer.lambda_handler
+      Environment:
+        Variables:
+          OFFERS_TABLE_NAME: !Ref OffersTable
+
+  LoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend_services/lambda_functions/
+      Handler: login.lambda_handler
+      Environment:
+        Variables:
+          USERS_TABLE_NAME: !Ref UsersTable
+          JWT_SECRET_KEY: !Ref JWTSecretKey
+
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  OffersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: offer_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+        - AttributeName: offer_id
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+
+  JWTSecretKey:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Secret key for JWT token generation
+      GenerateSecretString:
+        SecretStringTemplate: '{"jwt_secret_key":""}'
+        GenerateStringKey: jwt_secret_key
+        PasswordLength: 32
+
+  # Add API Gateway resources here
+
+Outputs:
+  # Add outputs for API Gateway URL, etc.

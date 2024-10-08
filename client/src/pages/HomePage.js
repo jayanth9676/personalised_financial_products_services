@@ -1,88 +1,74 @@
-import React from 'react';
-import { Container, Typography, Button, Box, Grid, Card, CardContent } from '@mui/material';
-import { styled } from '@mui/system';
+import React, { useEffect, useState } from 'react';
+import { Container, Typography, Grid, Card, CardContent, CardActions, Button, CircularProgress } from '@mui/material';
 import { Link } from 'react-router-dom';
-
-const HeroSection = styled(Box)`
-  background: linear-gradient(45deg, #3a0ca3 30%, #4cc9f0 90%);
-  color: white;
-  padding: 100px 0;
-  text-align: center;
-`;
-
-const FeatureCard = styled(Card)`
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-`;
+import { API } from 'aws-amplify';
 
 function HomePage() {
+  const [personalizedLoans, setPersonalizedLoans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchPersonalizedLoans();
+  }, []);
+
+  const fetchPersonalizedLoans = async () => {
+    try {
+      setLoading(true);
+      const response = await API.get('LoanAPI', '/personalized-loans');
+      setPersonalizedLoans(response);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching personalized loans:', err);
+      setError('Failed to load personalized loan options. Please try again later.');
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <CircularProgress />;
+  }
+
+  if (error) {
+    return <Typography color="error">{error}</Typography>;
+  }
+
   return (
-    <div>
-      <HeroSection>
-        <Container>
-          <Typography variant="h2" gutterBottom>
-            Welcome to FutureBank AI
-          </Typography>
-          <Typography variant="h5" paragraph>
-            Experience the future of personalized banking with AI-powered recommendations
-          </Typography>
-          <Button
-            component={Link}
-            to="/apply"
-            variant="contained"
-            color="secondary"
-            size="large"
-          >
-            Apply for a Loan
-          </Button>
-        </Container>
-      </HeroSection>
-      <Container sx={{ my: 8 }}>
-        <Typography variant="h3" gutterBottom align="center">
-          Our AI-Powered Features
-        </Typography>
-        <Grid container spacing={4} sx={{ mt: 4 }}>
-          <Grid item xs={12} md={4}>
-            <FeatureCard>
+    <Container maxWidth="lg">
+      <Typography variant="h4" component="h1" gutterBottom>
+        Welcome to AI-Powered Loan Recommendations
+      </Typography>
+      <Grid container spacing={4}>
+        {personalizedLoans.map((loan, index) => (
+          <Grid item xs={12} sm={6} md={4} key={index}>
+            <Card>
               <CardContent>
-                <Typography variant="h5" gutterBottom>
-                  Personalized Loan Recommendations
+                <Typography variant="h5" component="h2">
+                  {loan.loan_type}
                 </Typography>
-                <Typography variant="body1">
-                  Our AI analyzes your financial profile to offer tailored loan options that fit your needs.
+                <Typography color="textSecondary">
+                  Max Amount: ${loan.max_amount.toLocaleString()}
+                </Typography>
+                <Typography color="textSecondary">
+                  Interest Rate: {loan.interest_rate}%
+                </Typography>
+                <Typography color="textSecondary">
+                  Loan Term: {loan.loan_term} months
+                </Typography>
+                <Typography variant="body2" component="p">
+                  {loan.description}
                 </Typography>
               </CardContent>
-            </FeatureCard>
+              <CardActions>
+                <Button size="small" component={Link} to={`/apply/${loan.loan_type}`}>
+                  Apply Now
+                </Button>
+              </CardActions>
+            </Card>
           </Grid>
-          <Grid item xs={12} md={4}>
-            <FeatureCard>
-              <CardContent>
-                <Typography variant="h5" gutterBottom>
-                  Real-Time Offer Adjustments
-                </Typography>
-                <Typography variant="body1">
-                  Instantly see how changing loan parameters affects your offers, powered by advanced AI.
-                </Typography>
-              </CardContent>
-            </FeatureCard>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <FeatureCard>
-              <CardContent>
-                <Typography variant="h5" gutterBottom>
-                  AI-Assisted Application Process
-                </Typography>
-                <Typography variant="body1">
-                  Our intelligent system guides you through the application, making it quick and easy.
-                </Typography>
-              </CardContent>
-            </FeatureCard>
-          </Grid>
-        </Grid>
-      </Container>
-    </div>
+        ))}
+      </Grid>
+    </Container>
   );
 }
 

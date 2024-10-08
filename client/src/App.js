@@ -1,26 +1,35 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider, createTheme, responsiveFontSizes } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ErrorBoundary } from 'react-error-boundary';
 import { SnackbarProvider } from 'notistack';
+import { Amplify, Analytics } from 'aws-amplify';
+import { withAuthenticator } from '@aws-amplify/ui-react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import LoadingFallback from './components/LoadingFallback';
 import ErrorFallback from './components/ErrorFallback';
+import SkipLink from './components/SkipLink';
+import WebSocketProvider from './components/WebSocketProvider';
+import awsConfig from './aws-exports';
 import './App.css';
+import { ABTestProvider } from './components/ABTestProvider';
+import FeedbackForm from './components/FeedbackForm';
+
+Amplify.configure(awsConfig);
 
 // Lazy load pages for better performance
 const HomePage = lazy(() => import('./pages/HomePage'));
 const LoanRecommendationsPage = lazy(() => import('./pages/LoanRecommendationsPage'));
 const LoanApplicationPage = lazy(() => import('./pages/LoanApplicationPage'));
-const OfferPage = lazy(() => import('./pages/OfferPage'));
-const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
-const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage'));
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const PersonalizedOfferPage = lazy(() => import('./pages/PersonalizedOfferPage'));
 const CompareOffersPage = lazy(() => import('./pages/CompareOffersPage'));
+const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage'));
+const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
 
-const theme = createTheme({
+// Make the theme responsive
+let theme = createTheme({
   palette: {
     primary: {
       main: '#3a0ca3',
@@ -61,36 +70,50 @@ const theme = createTheme({
     },
   },
 });
+theme = responsiveFontSizes(theme);
 
 function App() {
+  useEffect(() => {
+    // Set up CloudWatch logging
+    Analytics.autoTrack('session', {
+      enable: true,
+      provider: 'AWSPinpoint'
+    });
+  }, []);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <SnackbarProvider maxSnack={3}>
         <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <div className="App">
-            <Header />
-            <main>
-              <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/recommendations" element={<LoanRecommendationsPage />} />
-                  <Route path="/apply" element={<Navigate to="/recommendations" replace />} />
-                  <Route path="/apply/:loanType" element={<LoanApplicationPage />} />
-                  <Route path="/offer" element={<OfferPage />} />
-                  <Route path="/profile" element={<UserProfilePage />} />
-                  <Route path="/ai-assistant" element={<AIAssistantPage />} />
-                  <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/compare-offers" element={<CompareOffersPage />} />
-                </Routes>
-              </Suspense>
-            </main>
-            <Footer />
-          </div>
+          <ABTestProvider>
+            <WebSocketProvider>
+              <div className="App">
+                <SkipLink />
+                <Header />
+                <main id="main-content">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Routes>
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/recommendations" element={<LoanRecommendationsPage />} />
+                      <Route path="/apply/:loanType" element={<LoanApplicationPage />} />
+                      <Route path="/personalized-offer" element={<PersonalizedOfferPage />} />
+                      <Route path="/compare-offers" element={<CompareOffersPage />} />
+                      <Route path="/ai-assistant" element={<AIAssistantPage />} />
+                      <Route path="/profile" element={<UserProfilePage />} />
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </Suspense>
+                </main>
+                <Footer />
+                <FeedbackForm />
+              </div>
+            </WebSocketProvider>
+          </ABTestProvider>
         </ErrorBoundary>
       </SnackbarProvider>
     </ThemeProvider>
   );
 }
 
-export default App;
+export default withAuthenticator(App);
